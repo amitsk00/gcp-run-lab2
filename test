@@ -1,0 +1,38 @@
+package main
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"cloud.google.com/go/firestore"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"google.golang.org/api/iterator"
+)
+var client *firestore.Client
+func main() {
+	var err error
+	ctx := context.Background()
+	client, err = firestore.NewClient(ctx, "qwiklabs-gcp-01-8e7ba226166f")
+	if err != nil {
+	log.Fatalf("Error initializing Cloud Firestore client: %v", err)
+	}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	r := mux.NewRouter()
+	r.HandleFunc("/v1/", rootHandler)
+	r.HandleFunc("/v1/customer/{id}", customerHandler)
+	log.Println("Pets REST API listening on port", port)
+	cors := handlers.CORS(
+		handlers.AllowedHeaders([]string{"X-Requested-With", "Authorization", "Origin"}),
+		handlers.AllowedOrigins([]string{"https://storage.googleapis.com"}),
+		handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "OPTIONS", "PATCH", "CONNECT"}),
+	)
+	if err := http.ListenAndServe(":"+port, cors(r)); err != nil {
+		log.Fatalf("Error launching Pets REST API server: %v", err)
+	}
+}

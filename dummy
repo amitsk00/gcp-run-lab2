@@ -1,0 +1,26 @@
+cd ~/pet-theory/lab07/prod-frontend-billing
+
+
+IMG_NAME=frontend-prod:0.1
+PROD_FE_SVC=frontend-production-service
+
+gcloud builds submit \
+  --tag gcr.io/$GOOGLE_CLOUD_PROJECT/$IMG_NAME
+
+gcloud run deploy $PROD_FE_SVC \
+  --image gcr.io/$GOOGLE_CLOUD_PROJECT/$IMG_NAME \
+  --platform managed \
+  --region $REGION \
+  --allow-unauthenticated \
+  --max-instances=1
+
+gcloud beta run services add-iam-policy-binding $PROD_FE_SVC --member=serviceAccount:$BILLING_SA@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com --role=roles/run.invoker --platform managed --region $REGION
+
+
+PROD_BILLING_URL=$(gcloud beta run services describe $PROD_FE_SVC --platform managed --region $REGION --format="value(status.url)")
+echo $PROD_BILLING_URL
+
+# curl -X get -H "Authorization: Bearer $(gcloud auth print-identity-token)" $PROD_BILLING_URL
+curl -X get  $PROD_BILLING_URL
+
+read -n 1 -p "checked the progress of Prod BilliFE servcie ?"  q3
